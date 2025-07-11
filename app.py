@@ -8,10 +8,11 @@ from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaIoBaseDownload
 
+# Streamlit UI setup
 st.set_page_config(page_title="Google Drive Remote Manager", layout="centered")
 st.title("🔐 Google Drive Remote Manager")
 
-# Load credentials from secrets
+# Load credentials from secrets.toml
 credentials_dict = {
     "web": {
         "client_id": st.secrets.google.client_id,
@@ -26,11 +27,12 @@ credentials_dict = {
 
 CREDENTIALS_PATH = "/tmp/credentials.json"
 TOKEN_PATH = "/tmp/token.pickle"
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 with open(CREDENTIALS_PATH, "w") as f:
     json.dump(credentials_dict, f)
 
+# Google auth flow
 def get_credentials():
     creds = None
     if os.path.exists(TOKEN_PATH):
@@ -50,6 +52,7 @@ def get_credentials():
         st.stop()
     return creds
 
+# Handle redirect
 query_params = st.query_params
 if "code" in query_params and "flow" in st.session_state:
     flow = st.session_state.flow
@@ -60,15 +63,18 @@ if "code" in query_params and "flow" in st.session_state:
     st.success("✅ Login successful! Reloading...")
     st.rerun()
 
+# Main logic
 try:
     creds = get_credentials()
     drive_service = build("drive", "v3", credentials=creds)
 
-    st.subheader("📁 Your Google Drive Files (First 10):")
-    results = drive_service.files().list(pageSize=10, fields="files(id, name)").execute()
+    st.subheader("📁 Your Google Drive Files (First 10 from My Drive):")
+    results = drive_service.files().list(q="'root' in parents and trashed=false", pageSize=10, fields="files(id, name)").execute()
     files = results.get("files", [])
+    if not files:
+        st.info("Your Drive is empty or inaccessible.")
     for file in files:
-        st.write(f"📄 {file['name']} (ID: {file['id']})")
+        st.markdown(f"📄 **{file['name']}** — `{file['id']}`")
 
     def download_folder(folder_id, local_path="downloads"):
         os.makedirs(local_path, exist_ok=True)

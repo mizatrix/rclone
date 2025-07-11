@@ -76,22 +76,34 @@ try:
     for file in files:
         st.markdown(f"📄 **{file['name']}** — `{file['id']}`")
 
+
     def download_folder(folder_id, local_path="downloads"):
         os.makedirs(local_path, exist_ok=True)
-        query = f"'{folder_id}' in parents and trashed=false"
-        results = drive_service.files().list(q=query, fields="files(id, name, mimeType)").execute()
+        query = f"'{folder_id}' in parents and trashed = false"
+        results = drive_service.files().list(
+            q=query,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            fields="files(id, name, mimeType)"
+        ).execute()
+
         for item in results.get("files", []):
-            if item["mimeType"] == "application/vnd.google-apps.folder":
-                st.write(f"📂 Entering folder: {item['name']}")
-                download_folder(item["id"], os.path.join(local_path, item["name"]))
+            name = item["name"]
+            file_id = item["id"]
+            mime = item["mimeType"]
+
+            if mime == "application/vnd.google-apps.folder":
+                st.write(f"📂 Entering folder: {name}")
+                download_folder(file_id, os.path.join(local_path, name))
             else:
-                st.write(f"⬇️ Downloading file: {item['name']}")
-                request = drive_service.files().get_media(fileId=item["id"])
-                with open(os.path.join(local_path, item["name"]), "wb") as f:
+                st.write(f"⬇️ Downloading: {name}")
+                request = drive_service.files().get_media(fileId=file_id)
+                with open(os.path.join(local_path, name), "wb") as f:
                     downloader = MediaIoBaseDownload(f, request)
                     done = False
                     while not done:
                         _, done = downloader.next_chunk()
+
 
     st.subheader("📂 Clone a Shared Google Drive Folder")
     shared_folder_id = st.text_input("Enter Shared Folder ID:")

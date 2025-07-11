@@ -53,7 +53,7 @@ def get_credentials():
     return creds
 
 # ✅ Handle redirect
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 if "code" in query_params and "flow" in st.session_state:
     flow = st.session_state.flow
     flow.fetch_token(code=query_params["code"][0])

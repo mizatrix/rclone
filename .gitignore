@@ -1,0 +1,5 @@
+.idea/
+venv/
+__pycache__/
+*.pyc
+credentials.json  # if you're using Google API credentials

@@ -53,15 +53,15 @@ def get_credentials():
     return creds
 
 # Handle redirect
-query_params = st.query_params
-if "code" in query_params and "flow" in st.session_state:
+if "code" in st.experimental_get_query_params() and "flow" in st.session_state:
+    code = st.experimental_get_query_params()["code"]
     flow = st.session_state.flow
-    flow.fetch_token(code=query_params["code"][0])
+    flow.fetch_token(code=code)
     creds = flow.credentials
     with open(TOKEN_PATH, "wb") as token:
         pickle.dump(creds, token)
     st.success("✅ Login successful! Reloading...")
-    st.rerun()
+    st.experimental_rerun()
 
 # Main logic
 try:

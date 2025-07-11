@@ -1,7 +1,8 @@
-.idea/
-venv/
-__pycache__/
-*.pyc
-credentials.json  # if you're using Google API credentials.streamlit/secrets.toml
-.streamlit/secrets.toml
+# Secrets
 credentials.json
+token.pickle
+.streamlit/secrets.toml
+
+# Downloaded files
+downloads/
+tmp/

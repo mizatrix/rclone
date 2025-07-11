@@ -2,9 +2,11 @@ import streamlit as st
 import os
 import pickle
 import json
+import io
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
+from googleapiclient.http import MediaIoBaseDownload
 
 # ✅ Set page config
 st.set_page_config(page_title="Google Drive Manager", layout="centered")
@@ -61,7 +63,7 @@ if "code" in query_params and "flow" in st.session_state:
     with open(TOKEN_PATH, "wb") as token:
         pickle.dump(creds, token)
     st.success("✅ Login successful! Reloading...")
-    st.experimental_rerun()
+    st.rerun()
 
 # ✅ Main app logic
 try:
@@ -80,5 +82,42 @@ try:
             st.write(f"📄 {file['name']} (ID: {file['id']})")
     else:
         st.info("No files found.")
+
+    # ✅ Add folder cloning functionality
+    def download_folder(folder_id, local_path="downloads"):
+        """Recursively downloads all files in the Google Drive folder."""
+        os.makedirs(local_path, exist_ok=True)
+        query = f"'{folder_id}' in parents and trashed=false"
+        results = drive_service.files().list(q=query, fields="files(id, name, mimeType)").execute()
+        items = results.get("files", [])
+
+        for item in items:
+            item_name = item["name"]
+            item_id = item["id"]
+            item_type = item["mimeType"]
+
+            if item_type == "application/vnd.google-apps.folder":
+                st.write(f"📂 Entering folder: {item_name}")
+                subfolder_path = os.path.join(local_path, item_name)
+                download_folder(item_id, subfolder_path)
+            else:
+                st.write(f"⬇️ Downloading file: {item_name}")
+                request = drive_service.files().get_media(fileId=item_id)
+                fh = io.FileIO(os.path.join(local_path, item_name), 'wb')
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done:
+                    _, done = downloader.next_chunk()
+
+    # ✅ UI to clone shared folder
+    st.subheader("📂 Clone a Shared Google Drive Folder")
+    shared_folder_id = st.text_input("Enter Shared Folder ID:")
+    if shared_folder_id and st.button("🚀 Clone Folder"):
+        try:
+            download_folder(shared_folder_id)
+            st.success("✅ Folder cloned successfully into 'downloads/' folder.")
+        except Exception as e:
+            st.error(f"❌ Failed to clone folder: {e}")
+
 except Exception as e:
     st.error(f"❌ Error: {e}")

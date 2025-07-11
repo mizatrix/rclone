@@ -3,3 +3,5 @@ venv/
 __pycache__/
 *.pyc
 credentials.json  # if you're using Google API credentials.streamlit/secrets.toml
+.streamlit/secrets.toml
+credentials.json
